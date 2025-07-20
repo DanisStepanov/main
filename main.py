@@ -3,9 +3,6 @@ import pandas as pd
 import numpy as np
 import altair as alt
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, max_error, r2_score,median_absolute_error,mean_squared_error
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import shap
 import matplotlib.pyplot as plt
 from xgboost import XGBRegressor
@@ -23,12 +20,11 @@ def main():
         model.load_model('model.json')
         return model
     
+    
     def load_metrics():
         metrics_df = pd.read_csv('metrics.csv')
         return metrics_df.set_index('metric')['value'].to_dict()
-        # if 'metric' in metrics_df.columns:
-        #             return {row['metric']: row['value'] for _, row in metrics_df.iterrows()}
-        # return metrics_df.to_dict('records')[0]
+
 
     df = load_data()
 
@@ -36,8 +32,8 @@ def main():
 
     priznak = [
     'sqft_living_scaled', 'bedrooms', 'bathrooms', 'sqft_lot_scaled', 
-    'grade_scaled', 'view_scaled', 'floors',
-    'waterfront', 'yr_built','sqft_above','condition', 'sqft_basement', 'yr_renovated','lat','long']
+    'grade_scaled', 'view_scaled', 'floors','sqft_above_scaled',
+    'waterfront', 'yr_built','sqft_above','condition_scaled', 'sqft_basement', 'yr_renovated','lat','long',]
 
     X = df[priznak]
     y = df['price']
@@ -45,30 +41,24 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
-    # model = RandomForestRegressor(
-    #     n_estimators=200,
-    #     max_depth=10,
-    #     min_samples_leaf=4,
-    #     random_state=42,
-    #     n_jobs=-1
-    #     )
-    # model.fit(X_train, y_train)
+
     y_pred = model.predict(X_test)
 
-    # def mean_absolute_percentage_error(y_true, y_pred):
-    #     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
-
-    # metrics = {
-    #     "R²": r2_score(y_test, y_pred),
-    #     "MAE": mean_absolute_error(y_test, y_pred),
-    #     "Max Error": max_error(y_test, y_pred),
-    #     "Медианная абсолютная ошибка": median_absolute_error(y_test, y_pred),
-    #     "Медианная абсолютная процентная ошибка": mean_absolute_percentage_error(y_test, y_pred),
-    #     "MSE": mean_squared_error(y_test, y_pred)
-    # }
 
     st.title("Степанов Денис Алексеевич_2023-ФГиИБ-ПИ-1б_20 Вариант_Рынок недвижемости")
-    st.write("В своей работе я рассматривал рынок недвижимости до 2024 года.")
+    st.write("В своей работе я рассматривал рынок недвижимости до 2024 года.id — Уникальный идентификационный номер, присвоенный каждому дому в наборе данных." \
+    " date — Дата добавления дома в набор данных в формате ГГГГ-ММ-ДД."\
+    " price — Цена дома в долларах США. bedrooms — Количество спален в доме, в наборе данных встречаются дома с 0 до 33 спален."\
+    " bathrooms — Количество ванных комнат в доме, варьируется от 0 до 8. sqft_living — Площадь жилой зоны в квадратных футах. "\
+    "sqft_lot — Общая площадь участка в квадратных футах. floors — Количество этажей в доме."\
+    " waterfront — Индикатор расположения дома у воды (озеро или пляж): 0 — нет, 1 — да." \
+    " view — Оценка вида на город, озеро или пляж из дома, от 0 до 5. condition — Общая оценка состояния дома, от 1 до 5." \
+    " grade — Общая оценка качества дома, от 1 до 12. sqft_above — Площадь дома над уровнем земли в квадратных футах." \
+    " sqft_basement — Площадь подвала дома (ниже уровня земли) в квадратных футах. yr_built — Год постройки дома." \
+    " yr_renovated — Год проведения ремонта или реконструкции дома. zipcode — Почтовый индекс (5 цифр), в котором расположен дом." \
+    " lat — Географическая широта расположения дома. long — Географическая долгота расположения дома. " \
+    "sqft_living15 — Средняя площадь жилой зоны 15 ближайших домов в квадратных футах." \
+    " sqft_lot15 — Средняя площадь участка 15 ближайших домов в квадратных футах.")
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["SHAP анализ и результаты обучения модели","Топ прогнозов по ошибке и распределение цен","Графики зависимостей", "Метрики модели", "Исходные данные"])
     
@@ -106,7 +96,7 @@ def main():
             ax.legend()
             ax.grid(True)
             st.pyplot(fig)
-            st.write('Точечный график, где по оси X — реальные цены, по оси Y — предсказанные. Идеальная модель даёт точки на красной линии (y = x).')
+            st.write('Точечный график, где по оси X — реальные цены, по оси Y — предсказанные. Идеальная модель даёт точки на красной линии (y = x). Исходя из графика, можно скачазать, что большинство всё было правильно.')
     with tab2:
         st.subheader("Топ прогнозов по ошибке")
         results_df = pd.DataFrame({
@@ -152,7 +142,7 @@ def main():
                 title="Цена от количества спален"
             ).interactive()
             st.altair_chart(chart1, use_container_width=True)
-            st.write('Показывает, как количество комнат влияет на стоимость дома. Рост цены при увеличении комнат до определенного предела (3-5 комнат), затем плато или снижение для особняков.')
+            st.write('Показывает, как количество комнат влияет на стоимость дома. Точки определяют каждый отдельный дом, самое популярное количество домов с 2-5 ванными.')
             
             chart3 = alt.Chart(df).mark_circle().encode(
                 x=alt.X('sqft_living:Q', axis=alt.Axis(title='Жилая площадь (кв. футы)')),
@@ -189,19 +179,19 @@ def main():
                 title="Цена от количества ванных"
             ).interactive()
             st.altair_chart(chart2, use_container_width=True)
-            st.write('Показывает, как количество ванных комнат влияет на стоимость дома. Рост цены при увеличении ванных до определенного предела (5-5,75).')
+            st.write('Показывает, как количество ванных комнат влияет на стоимость дома. Рост цены при увеличении ванных до определенного предела (3-3,5).')
 
             chart4 = alt.Chart(df).mark_circle().encode(
-                x=alt.X('sqft_lot:Q', axis=alt.Axis(title='Площадь участка (кв. футы)')),
+                x=alt.X('sqft_lot_scaled:Q', axis=alt.Axis(title='Площадь участка.')),
                 y=alt.Y('price:Q', axis=alt.Axis(title='Цена')),
-                tooltip=['sqft_lot', 'price']
+                tooltip=['sqft_lot_scaled', 'price']
             ).properties(
                 width=400,
                 height=300,
                 title="Цена от площади участка"
             ).interactive()
             st.altair_chart(chart4, use_container_width=True)
-            st.write('Связь между площадью участка (в квадратных футах) и ценой. Резкий рост цены , затем слабая зависимость.')
+            st.write('Связь между площадью участка  и ценой. Резкий рост цены , затем слабая зависимость, имеются отдельные участки с большой площадью, скорее всего особняки, но из-за маленькой цены, видимо плохого качества.Площадь была стандартизирована')
 
             chart6 = alt.Chart(df).mark_circle().encode(
                 x=alt.X('grade_scaled:Q', axis=alt.Axis(title='Оценка качества')),
@@ -226,7 +216,6 @@ def main():
         r2_value = metric.get('R2', metric.get('R²', 0))
         mae_value = metric.get('MAE', 0)
         max_error_value = metric.get('Max Error', 0)
-        med_abs_error = metric.get('Медианная абсолютная ошибка', 0)
         med_abs_proc_error = metric.get('Медианная абсолютная процентная ошибка', 0)
         MSE = metric.get('MSE', 0)
 
@@ -257,22 +246,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-
-# st.write('База данных')
-#     df = pd.read_csv('table.csv')
-
-#     st.dataframe(df)
-    
-#     st.write('График')
-
-#     fig, axes = plt.subplots(figsize=(4, 4))
-#     fig.suptitle('Зависимость цены дома от количества спален', fontsize=16, y=1.00)
-
-#     df.groupby('bedrooms')['price'].mean().plot(kind='bar', ax=axes, color='skyblue')
-#     axes.set_xlabel('Количество спален')
-#     axes.set_ylabel('Цена')
-
-
-    # st.pyplot(fig)
-    # st.text('Для анализа первого графика я взял взаимосвязь цены от количества спален.\nПо этом графику можно сказать, что тренд бычий, то есть чем больше спален, тем дороже дом.\nОднако цена между 9 и 11 существенно снижает, вероятнее всего говорит о низком спросе, хотя потом для 33 спален цена снова вырастает, как по мне речь может идти о огромном поместье.\nА цена для 0 спален говорит о том, что скорее всего это студии.')

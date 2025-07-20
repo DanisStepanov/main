@@ -5,4 +5,3 @@ xgboost>=1.5.0
 altair>=4.2.0
 streamlit>=1.12.0
 shap>=0.40.0
-matplotlib>=3.5.0
