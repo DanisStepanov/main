@@ -7,6 +7,7 @@ import shap
 import matplotlib.pyplot as plt
 from xgboost import XGBRegressor
 import xgboost as xgb
+import plotly.graph_objects as go
 
 def main():
     st.set_page_config(layout="wide", page_title="Анализ цен на недвижимость")
@@ -37,6 +38,7 @@ def main():
 
     X = df[priznak]
     y = df['price']
+
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
@@ -109,22 +111,87 @@ def main():
             Красные точки показывают средние значения
             ''')
 
-            chart5 = alt.Chart(df).mark_circle(size=8, opacity=0.6).encode(
-                x=alt.X('lat:Q', title='Широта', bin=alt.Bin(maxbins=30)),
-                y=alt.Y('price:Q', title='Цена', scale=alt.Scale(domain=[0, 2000000])),
-                color=alt.Color('mean(price):Q', scale=alt.Scale(scheme='goldorange')),
-                size='count()',
-                tooltip=['lat', 'mean(price)', 'count()']
-            ).properties(
-                width=400,
-                height=300,
-                title="Географическое распределение цен (широта)"
-            ).interactive()
+            scl = [[0, "rgb(150,0,90)"], [0.125, "rgb(0, 0, 200)"], [0.25, "rgb(0, 25, 255)"],
+                [0.375, "rgb(0, 152, 255)"], [0.5, "rgb(44, 255, 150)"], [0.625, "rgb(151, 255, 0)"],
+                [0.75, "rgb(255, 234, 0)"], [0.875, "rgb(255, 111, 0)"], [1, "rgb(255, 0, 0)"]]
             
-            st.altair_chart(chart5, use_container_width=True)
-            st.write('''
-            Самые дорогие дома находятся 47.5-47.7 широты. Чем краснее цвет круга, тем дороже дом.
-            ''')
+            fig = go.Figure(data=go.Scattergeo(
+                lat=df['lat'],
+                lon=df['long'],
+                text=df['price'].astype(str),
+                marker=dict(
+                    color=df['price'],
+                    colorscale=scl,
+                    reversescale=False,  
+                    opacity=0.7,
+                    size=8,  
+                    colorbar=dict(
+                        title=dict(
+                            text="Цена",
+                            side="right"
+                        ),
+                        outlinecolor="rgba(68, 68, 68, 0)",
+                        ticks="outside",
+                        showticksuffix="last",
+                        dtick=200000  
+                    )
+                )
+            ))
+
+            fig.update_layout(
+                geo=dict(
+                    scope='north america',
+                    showland=True,
+                    landcolor="rgb(212, 212, 212)",
+                    subunitcolor="rgb(255, 255, 255)",
+                    countrycolor="rgb(255, 255, 255)",
+                    showlakes=True,
+                    lakecolor="rgb(255, 255, 255)",
+                    showsubunits=True,
+                    showcountries=True,
+                    resolution=50,
+                    projection=dict(
+                        type='conic conformal',
+                        rotation_lon=-123 
+                    ),
+                    lonaxis=dict(
+                        showgrid=True,
+                        gridwidth=0.5,
+                        range=[-123.0, -120.0], 
+                        dtick=1
+                    ),
+                    lataxis=dict(
+                        showgrid=True,
+                        gridwidth=0.5,
+                        range=[47.0, 48.0],  
+                        dtick=0.5
+                    )
+                ),
+                title=dict(
+                    text='Распределение цен на жильё по географическим координатам<br>'
+                    '<span style="font-size: 12px;">Чем краснее точка, тем выше цена</span>'),
+                margin=dict(l=0, r=0, t=40, b=0)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            st.write('')
+
+
+            # chart5 = alt.Chart(df).mark_circle(size=8, opacity=0.6).encode(
+            #     x=alt.X('lat:Q', title='Широта', bin=alt.Bin(maxbins=30)),
+            #     y=alt.Y('price:Q', title='Цена', scale=alt.Scale(domain=[0, 2000000])),
+            #     color=alt.Color('mean(price):Q', scale=alt.Scale(scheme='goldorange')),
+            #     size='count()',
+            #     tooltip=['lat', 'mean(price)', 'count()']
+            #     ).properties(
+            #     width=400,
+            #     height=300,
+            #     title="Географическое распределение цен (широта)"
+            #     ).interactive()
+            
+            # st.altair_chart(chart5, use_container_width=True)
+            # st.write('''
+            # Самые дорогие дома находятся 47.5-47.7 широты. Чем краснее цвет круга, тем дороже дом.
+            # ''')
 
             with col2:
                 chart2 = alt.Chart(df).mark_circle(size=40, opacity=0.5).encode(
@@ -148,33 +215,24 @@ def main():
             Красная линия тренда, уверенно движется вверх, то есть чем больше ванных комнат, тем выше цена.
             ''')
 
-            chart6 = alt.Chart(df).mark_rect().encode(
-                x=alt.X('long:Q', title='Долгота', bin=alt.Bin(maxbins=30)),
-                y=alt.Y('price:Q', title='Цена', bin=alt.Bin(maxbins=20, extent=[0, 2000000])),
-                color=alt.Color('mean(price):Q', 
-                            scale=alt.Scale(scheme='greenblue'),
-                            legend=alt.Legend(title="Средняя цена"))
-            ).properties(
-                width=400,
-                height=300,
-                title="Распределение цен по долготе"
-            )
             
-            st.altair_chart(chart6, use_container_width=True)
-            st.write('''
-            Самые дорогие дома находтся на долготе -122.45 до -122. Чем синее цветы тем дороже, чем белее тем дешевле дома.
-            ''')
-            # chart4 = alt.Chart(df).mark_bar().encode(
-            #     x=alt.X('floors:O', title='Количество этажей'),
-            #     y=alt.Y('mean(price):Q', title='Цена'),
-            #     tooltip=['floors', 'price']
+
+            # chart6 = alt.Chart(df).mark_rect().encode(
+            #     x=alt.X('long:Q', title='Долгота', bin=alt.Bin(maxbins=30)),
+            #     y=alt.Y('price:Q', title='Цена', bin=alt.Bin(maxbins=20, extent=[0, 2000000])),
+            #     color=alt.Color('mean(price):Q', 
+            #                 scale=alt.Scale(scheme='greenblue'),
+            #                 legend=alt.Legend(title="Средняя цена"))
             # ).properties(
             #     width=400,
             #     height=300,
-            #     title="Цена по количеству этажей"
+            #     title="Распределение цен по долготе"
             # )
-            # st.altair_chart(chart4, use_container_width=True)
-            # st.write('Связь между площадью участка  и ценой. Резкий рост цены , затем слабая зависимость, имеются отдельные участки с большой площадью, скорее всего особняки, но из-за маленькой цены, видимо плохого качества.Площадь была стандартизирована')
+            
+            # st.altair_chart(chart6, use_container_width=True)
+            # st.write('''
+            # Самые дорогие дома находтся на долготе -122.45 до -122. Чем синее цветы тем дороже, чем белее тем дешевле дома.
+            # ''')
 
 
     with tab2:
